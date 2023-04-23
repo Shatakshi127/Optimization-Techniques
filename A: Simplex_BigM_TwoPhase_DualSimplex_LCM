@@ -1,0 +1,411 @@
+%SIMPLEX METHOD
+%Always slack
+
+
+clc
+clear all
+format short
+c=[-1 3 -2]
+a1=[3 -1 2; -2 4 0; -4 3 8]
+b=[7; 12 ;10]
+s=eye(size(a1,1))
+a=[a1 s b]
+cost=zeros(1,size(a,2))
+variables=size(a1,2)
+cost(1:variables)=c
+bv=variables+1:size(a,2)-1
+zjcj=cost(bv)*a-cost
+zcj=[zjcj;a]
+simplexT=array2table(zcj,'VariableNames',{'x1','x2','x3','s1','s2','s3','soln'})
+Run=true;
+while Run
+if any(zjcj(1:end-1)<0)
+fprintf('table not optimal');
+disp('old basic variables are=')
+disp(bv)
+zc=zjcj(1:end-1)
+[minval pvt_col]=min(zc)
+fprintf('entering variable is %d',pvt_col)
+sol=a(:,end)
+column=a(:,pvt_col)
+if all(column<=0)
+fprintf('lpp is unbounded')
+else
+for(i=1:size(column,1))
+if(column(i)>0)
+ratio(i)=sol(i)/column(i);
+else
+ratio(i)=inf;
+end
+end
+end
+[minval pvt_row]=min(ratio)
+fprintf('leaving variable is',pvt_row)
+bv(pvt_row)=pvt_col
+disp('new basic variable=')
+disp(bv)
+pvt_key=a(pvt_row,pvt_col)
+a(pvt_row,:)=a(pvt_row,:)/pvt_key
+for i=1:size(a,1)
+if i~=pvt_row
+a(i,:)=a(i,:)-a(i,pvt_col).*a(pvt_row,:)
+end
+end
+zjcj=zjcj-zjcj(pvt_col).*a(pvt_row,:)
+zcj=[zjcj;a]
+simplexT=array2table(zcj,'VariableNames',{'x1','x2','x3','s1','s2','s3','soln'})
+bfs=zeros(1,size(a,2))
+bfs(bv)=a(:,end);
+bfs(end)=sum(bfs.*cost);
+currentbfs=array2table(bfs,'VariableNames',{'x1','x2','x3','s1','s2','s3','soln'})
+else
+Run=false;
+fprintf('table is optimal')
+end
+end
+
+
+%-----------------------------------------------------------------------------------------------------------
+% BIG M
+%Can be any be it slack or surplus
+
+clc
+clear all
+format short
+M=1000
+cost=[3 2 0 0 -M 0]
+a=[1 1 1 0 0 2;1 3 0 1 0 3;1 -1 0 0 1 1]
+
+% bv=[3 4 5]
+s=eye(size(a,1));
+bv=[]
+for j=1:size(s,2)
+    for i=1:size(a,2)
+        if a(:,i)==s(:,j)
+            bv=[bv i];
+        end
+    end
+end
+zjcj=cost(bv)*a-cost
+zcj=[zjcj;a]
+simplexT=array2table(zcj,'VariableNames',{'x1','x2','s1','s2','A1','soln'})
+Run=true;
+while Run
+    zc=zjcj(:,1:end-1)
+if any(zc<0)
+ fprintf('table not optimal');
+ disp('old basic variables are=')
+ disp(bv)
+ 
+[minval pvt_col]=min(zc)
+fprintf('entering variable is %d',pvt_col)
+
+sol=a(:,end)
+column=a(:,pvt_col)
+if all(column<=0)
+fprintf('lpp is unbounded')
+else
+for i=1:size(column,1)
+if column(i)>0
+ ratio(i)=sol(i)./column(i);
+else
+ratio(i)=inf;
+end
+end
+end
+
+[minr pvt_row]=min(ratio)
+fprintf('leaving variable is',pvt_row)
+bv(pvt_row)=pvt_col
+disp('new basic variable=')
+disp(bv)
+pvt_key=a(pvt_row,pvt_col)
+a(pvt_row,:)=a(pvt_row,:)./pvt_key
+ for i=1:size(a,1)
+ if i~=pvt_row
+a(i,:)=a(i,:)-a(i,pvt_col).*a(pvt_row,:)
+ end
+ end
+ zjcj=cost(bv)*a-cost
+
+zcj=[zjcj;a]
+simplexT=array2table(zcj,'VariableNames',{'x1','x2','s1','s2','A1','soln'})
+bfs=zeros(1,size(a,2))
+bfs(bv)=a(:,end);
+ bfs(end)=sum(bfs.*cost);
+currentbfs=array2table(bfs,'VariableNames',{'x1','x2','s1','s2','A1','soln'})
+
+else
+Run=false;
+fprintf('table is optimal')
+end
+end
+
+%-----------------------------------------------------------------------------------------------------------
+
+% TWO PHASE METHOD
+%Can be any be it slack or surplus
+
+clc
+clear all
+%-----Problem 1----
+Variables={'x1','x2','s1','s2','A1','A2','sol'};
+OVariables={'x_ 1','x_ 2','s_ 1','s_ 2','sol'}; % original variables
+OrigC=[-3 -5 0 0 -1 -1 0];
+a=[1 3 -1 0 1 0; 1 1 0 -1 0 1];
+b=[3;2];
+A=[a b];
+
+%-----Problem 2----
+% Variables={'x1','x2','s1','s2','A1','A2','sol'};
+% OVariables={'x_ 1','x_ 2','s_ 1','s_ 2','sol'}; 
+% OrigC=[-3 4 0 0 -1 -1 0];
+% a=[1 -1 -1 0 1 0; 2 -1 0 -1 0 1];
+% b=[0;2];
+% A=[a b];
+% PHASE-1
+fprintf('********** PHASE-1 ********** \n')
+%----Problem 1-----
+cost=[0 0 0 0 -1 -1 0]
+Artifical_var=[5 6]             
+bv=[5 6];
+ 
+ %----Problem 2----
+%  cost=[ 0 0 0 0 -1 -1 0];
+%  Artifical_var=[5 6];  Here R1 R2. 
+%  bv=[5 6];             Here by chance R1 R2 but can be s1 R1 R2.Identity.
+
+ 
+zjcj=cost(bv)*A-cost;
+simplex_table=[zjcj;A];
+array2table(simplex_table,'VariableNames',Variables)
+RUN=true;
+while RUN
+if any(zjcj(1:end-1)<0) % check for negative value
+ fprintf(' the current BFS is not optimal \n')
+ zc=zjcj(1:end-1);
+ [Enter_val, pvt_col]= min(zc);
+ if all(A(:,pvt_col)<=0)
+ error('LPP is Unbounded all enteries are <=0 in column % d',pvt_col);
+ else
+ sol=A(:,end);
+ column=A(:,pvt_col);
+ for i=1:size(A,1)
+ if column(i)>0
+ ratio(i)= sol (i)./column(i);
+ else
+ ratio(i)=Inf;
+ end
+ end
+ [leaving_val, pvt_row]=min(ratio);
+ end
+bv(pvt_row)=pvt_col;
+pvt_key=A(pvt_row, pvt_col);
+A(pvt_row,:)=A (pvt_row,:)./pvt_key;
+for i=1:size(A,1)
+ if i~=pvt_row
+ A(i,:)=A(i,:)-A (i, pvt_col).*A(pvt_row,:);
+ end
+end
+%  zjcj=zjcj-zjcj (pvt_col).*A(pvt_row,:);
+zjcj=cost(bv)*A-cost;
+ next_table=[zjcj;A];
+ table=array2table(next_table,'VariableNames',Variables)
+else
+ RUN=false;
+ if any(bv==Artifical_var(1)) || any(bv==Artifical_var(2))
+     error('Infeasible solution');
+ else
+  fprintf('optimal table of phase-1 is achieved \n');
+ end
+end
+end
+
+% PHASE-2
+fprintf('********** PHASE-2 ********** \n')
+A(:,Artifical_var)=[]; % Removing Artificial var by giving them empty value
+OrigC(:,Artifical_var)=[]; % Removing Artificial var cost by giving them empty value
+cost=OrigC;
+zjcj=cost(bv)*A-cost;
+simplex_table=[zjcj;A];
+array2table(simplex_table,'VariableNames',OVariables)
+
+RUN=true;
+while RUN
+if any(zjcj(1:end-1)<0) % check for negative value
+ fprintf('The current BFS is not optimal \n')
+ zc=zjcj(1:end-1);
+ [Enter_val, pvt_col]= min(zc);
+ if all(A(:,pvt_col)<=0)
+ error('LPP is Unbounded, all entries are <=0 in column %d',pvt_col);
+ else
+ sol=A(:,end);
+ column=A(:,pvt_col);
+ for i=1:size(A,1)
+ if column(i)>0
+ ratio(i)= sol (i)./column(i);
+ else
+ ratio(i)=inf;
+ end
+ end
+ [leaving_val, pvt_row]=min(ratio);
+ end
+bv(pvt_row)=pvt_col;
+pvt_key=A(pvt_row, pvt_col);
+A(pvt_row,:)=A (pvt_row,:)./pvt_key;
+for i=1:size(A,1)
+ if i~=pvt_row
+ A(i,:)=A(i,:)-A (i, pvt_col).*A(pvt_row,:);
+ end
+end
+%  zjcj=zjcj-zjcj (pvt_col).*A(pvt_row,:);
+zjcj=cost(bv)*A-cost;
+next_table=[zjcj;A];
+ table=array2table(next_table,'VariableNames',OVariables)
+else
+ RUN=false;
+  fprintf('The current BFS is optimal \n');
+  z=input(' Enter 0 for minimization and 1 for max \n');
+    if z==0
+        Obj_value=-zjcj(end);
+    else
+        Obj_value=zjcj(end);
+    end
+    fprintf('The final optimal value is %f \n',Obj_value);
+ end
+end
+
+%-----------------------------------------------------------------------------------------------------------
+
+%DUAL SIMPLEX_DS
+%Always slack
+
+clc
+clear all
+%prerequisite: convert min to max problem & convert >= to <=
+%parameter input
+cost=[-3 -5 0 0 0] %last 0 for soln
+a=[-1 -3 1 0 -3;-1 -1 0 1 -2]
+bv=[3 4] %position of basic variables
+nv=size(a,2) %no of variables in original matrix
+
+zjcj=cost(bv)*a-cost
+
+
+zcj=[zjcj;a]
+% simplex=array2table(zc)
+optimal_table=array2table(zcj,'VariableNames',{'x1','x2','s1','s2','soln'})
+
+Run=true;
+while Run 
+
+%feasibility condition
+sol=a(:,end)
+if any(sol<0)
+    fprintf('Current BFS is not feasible')
+%leaving variable
+[leaving_value pvt_row]=min(sol)
+fprintf('Leaving variable: %d',pvt_row)
+
+
+%entering variable
+for i=1:size(a,2)-1
+    if a(pvt_row,i)<0
+        ratio(i)=abs(zjcj(i)/a(pvt_row,i));
+    else
+        ratio(i)=inf;
+    end
+end
+[entering_value pvt_col]=min(ratio)
+fprintf('Entering variable: %d',pvt_col)
+bv(pvt_row)=pvt_col;
+pvt_key=a(pvt_row ,pvt_col)
+%update table for new iteration
+a(pvt_row,:)=a(pvt_row,:)/pvt_key
+for i=1:size(a,1)
+    if i~=pvt_row
+        a(i,:)=a(i,:)-a(pvt_row,:)*a(i,pvt_col)
+    end
+end
+zjcj=zjcj-zjcj(pvt_col)*a(pvt_row,:)
+%to print updated table
+zcj=[zjcj;a]
+optimal_table=array2table(zcj,'VariableNames',{'x1','x2','s1','s2','soln'})
+bfs=zeros(1,size(a,2))
+bfs(bv)=a(:,end);
+bfs(end)=sum(bfs.*cost); %update soln %element wise multiplication
+current_bfs=array2table(bfs,'VariableNames',{'x1','x2','s1','s2','soln'})   %ans
+
+else
+    Run=false;
+    fprintf('Optimal soln reached')
+end
+end
+
+%-----------------------------------------------------------------------------------------------------------
+
+%LEAST COST TRANSPORTATION
+
+clc
+clear all
+format short
+
+%% question parameters
+cost=[11 20 7 8;21 16 10 12;8 12 18 9]
+a=[50 40 70]
+b=[30 25 35 40]
+
+%% balancing
+if sum(a)==sum(b)
+    fprintf('balanced transportation problem')
+else 
+    fprintf('unbalanced transportation problem')
+    if sum(a)<sum(b)
+        cost(end+1,:)=zeros(1,length(b))
+        a(end+1)=sum(b)-sum(a)
+    else
+        cost(:,end+1)=zeros(length(a),1)
+        b(end+1)=sum(a)-sum(b)
+    end
+end
+
+%% storing initial parameters
+initcost=cost
+x=zeros(size(cost))
+[m n]=size(cost)
+bfs=m+n-1
+
+%% lcm operations
+for i=1:size(cost,1)
+    for j=1:size(cost,2)
+        mincost=min(cost(:))
+        [rowind colind]=find(mincost==cost)
+        x1=min(a(rowind),b(colind))
+        [val ind]=max(x1)
+        ii=rowind(ind)
+        jj=colind(ind)
+        y1=min(a(ii),b(jj))
+        x(ii,jj)=y1
+        a(ii)=a(ii)-y1
+        b(jj)=b(jj)-y1
+        cost(ii,jj)=inf
+    end
+end
+
+%% print bfs
+fprintf('initial bfs\n')
+ibfs=array2table(x)
+
+%% check degeneracy
+totalbfs=length(nonzeros(x))
+if totalbfs==bfs
+    fprintf('non degenerate solution')
+else
+    fprintf('degenerate solution')
+end
+
+%% compute initial transportation cost
+itc=sum(sum(initcost.*x))
+fprintf('initial bfs cost is\n')
+itc
+
