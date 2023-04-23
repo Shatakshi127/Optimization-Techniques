@@ -1,6 +1,61 @@
 %DUAL SIMPLEX_DS
 %Always slack
 
+
+
+%M111111111111111::::::::::::::;;
+%DUAL SIMPLEX
+
+clc
+clear all
+cost=[-2 0 -1 0 0 0]
+A=[-1 -1 1 1 0 -5; -1 2 -4 0 1 -8]
+BV=[4 5]
+zjcj=cost(BV)*A-cost
+%print table 
+SimpTable=[zjcj;A];
+array2table(SimpTable,'VariableName',{'x1','x2','x3','s1','s2','sol'})
+Run=true;
+while Run
+        %feasibility condition
+        sol=A(:,end)
+if any(sol<0)
+        fprintf('current bfs is not feasible')
+        %leaving variable
+        [leaving_val,pvt_row]=min(sol)
+        fprintf('leaving variable is %d',pvt_row)
+        %entering variable
+        for i=1:size(A,2)-1
+                if A(pvt_row,i)<0
+                        ratio(i)=abs(zjcj(i)/A(pvt_row,i));
+                else
+                        ratio(i)=inf;
+                end
+        end
+        [entering_val, pvt_col]=min(ratio)
+        fprintf('entering variable is %d', pvt_col)
+        BV(pvt_row)=pvt_col
+         pvt_key=A(pvt_row,pvt_col)
+                A(pvt_row,:)=A(pvt_row,:)./pvt_key
+                for i=1:size(A,1)
+               if i~=pvt_row
+                    A(i,:)=A(i,:)-A(i,pvt_col).*A(pvt_row,:);
+                end
+                end
+                BV(pvt_row)=pvt_col
+                zjcj=cost(BV)*A-cost
+                new_table=[A;zjcj]
+                array2table(new_table,'VariableNames',{'x1','x2','x3','s1','s2','sol'})
+else
+                Run=false
+                fprintf('optimal sol is %f',zjcj(end))
+end
+
+end
+
+
+
+%M222222222222::::::::::::::::::::
 clc
 clear all
 %prerequisite: convert min to max problem & convert >= to <=
