@@ -129,3 +129,60 @@ else
     fprintf('The final optimal value is %f \n',Obj_value);
  end
 end
+
+
+
+
+clc
+clear all
+cost=[0 0 0 0 0 -1 -1 -1 0]
+A1=[5 1 -1 0 0 1 0 0; 6 5 0 -1 0 0 1 0;1 4 0 0 -1 0 0 1]
+B=[10;30;8]
+A=[A1 B]
+Artificial_var=[6 7 8]
+BV=[6 7 8]
+zjcj=cost(BV)*A-cost
+zcj=[zjcj;A]
+SimplexT=array2table(zcj,'VariableNames',{'x1','x2','s1','s2','s3','R1','R2','R3','sol'})
+Run=true;
+while Run
+    if any (zjcj(1:end-1)<0)
+        fprintf('not optimal')
+        disp(BV)
+        zc=zjcj(1:end-1)
+        [entering_val pvt_col]=min(zc)
+        fprintf('%d',pvt_col)
+        sol=A(:,end)
+        column=A(:,pvt_col)
+        if column<=0
+            fprintf('unbounded')
+        else
+            for i=1:size(A,1)
+                if column(i)>=0
+                    ratio(i)=sol(i)/column(i)
+                else
+                    ratio(i)=inf
+                end
+            end
+        end
+                    [leaving_val pvt_row]=min(ratio)
+            BV(pvt_row)=pvt_col
+            pvt_key=A(pvt_row,pvt_col)
+            A(pvt_row,:)=A(pvt_row,:)/pvt_key
+            for i=1:size(A,1)
+                if i~=pvt_row
+                    A(i,:)=A(i,:)-A(i,pvt_col).*A(pvt_row,:)
+                end
+            end
+            zjcj=cost(BV)*A-cost
+            new_table=[zjcj;A]
+            SimplexT=array2table(new_table,'VariableNames',{'x1','x2','s1','s2','s3','R1','R2','R3','sol'})
+        else
+            Run=false;
+            if (any(BV==Artificial_var(1)) || any(BV==Artificial_var(2)) || any(BV==Artificial_var(3)))
+                fprintf('infeasible')
+        else
+            fprintf('optimal')
+        end
+    end
+end
