@@ -15,6 +15,15 @@ nv=size(A,2)
 %cost(1:nv)=C
 [cost;A]
 bv=[5 6 4];
+s=eye(size(A,1));
+bv=[]
+for j=1:size(s,2)
+    for i=1:size(A,2)
+        if A(:,i)==s(:,j)
+            bv=[bv i];
+        end
+    end
+end
 %bv=nv+1:size(A,2)-1
 zjcj=cost(bv)*A-cost
 zcj=[zjcj;A]
